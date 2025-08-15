@@ -12,7 +12,8 @@
     "vite": "npm:rolldown-vite@^7.0.12"
   },
   "dependencies": {
-    "pixi.js": "^7.4.3",
-    "pixi-live2d-display": "^0.5.0-beta"
+    "@alphardex/live2d-viewer": "^1.0.0",
+    "pixi-live2d-display": "^0.5.0-beta",
+    "pixi.js": "^7.4.3"
   }
 }
