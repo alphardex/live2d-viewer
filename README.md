@@ -27,6 +27,10 @@ npm install pixi.js@7.4.3 pixi-live2d-display@0.5.0-beta
 npm install @alphardex/live2d-viewer
 ```
 
+## 在线体验
+
+地址：https://live2d-viewer-alphardex.netlify.app/
+
 ## 使用方法
 
 ### 1. 导入组件
