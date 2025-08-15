@@ -1,0 +1,48 @@
+{
+  "name": "@alphardex/live2d-viewer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A custom HTML element for displaying Live2D animations using PIXI.js",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "serve": "node dev-server.js",
+    "start": "npm run serve",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "live2d",
+    "animation",
+    "pixi",
+    "web-component",
+    "custom-element",
+    "html"
+  ],
+  "author": "alphardex",
+  "license": "MIT",
+  "peerDependencies": {
+    "pixi.js": ">=7.0.0 <8.0.0",
+    "pixi-live2d-display": "0.5.0-beta"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^4.46.2",
+    "express": "^4.18.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alphardex/live2d-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alphardex/live2d-viewer/issues"
+  },
+  "homepage": "https://github.com/alphardex/live2d-viewer#readme"
+}

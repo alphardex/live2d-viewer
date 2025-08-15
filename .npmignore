@@ -1,0 +1,53 @@
+# Source files
+src/
+examples/
+
+# Development files
+rollup.config.js
+.gitignore
+
+# Documentation (keep README.md)
+# README.md is included by default
+
+# Dependencies
+node_modules/
+
+# Build tools
+.babelrc
+.eslintrc*
+.prettierrc*
+tsconfig.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+.nyc_output
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Environment
+.env*
+
+# Test files
+__tests__/
+*.test.js
+*.spec.js
+
+# Temporary files
+*.tmp
+*.temp
