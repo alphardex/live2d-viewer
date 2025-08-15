@@ -113,13 +113,10 @@ console.log("Available expressions:", expressions);
 **返回：**
 - `Array<string>`: 表情名称数组
 
-## 注意事项
-
-1. 确保 Live2D 模型文件路径正确
-2. 模型文件需要包含相应的动作和表情数据
-3. 建议在模型加载完成后再调用相关方法
-4. 支持 Live2D Cubism 3.0+ 格式的模型
-
 ## 许可证
 
-MIT License
+MIT
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
