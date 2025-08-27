@@ -10,16 +10,18 @@
 npm install pixi.js@7.4.3 pixi-live2d-display@0.5.0-beta
 ```
 
-## live2D运行时
+## live2D 运行时
 
-还需要额外引入live2D的运行时文件。
+还需要额外引入 live2D 的运行时文件。
 
 ```html
 <!-- Cubism 2.1 -->
 <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
 <!-- Cubism 4 -->
-<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<!-- <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script> -->
 ```
+
+注意：新版的 Cubism 4 更新了相关的 API，如果直接引用 cdn 的 JS 文件会报错，我们需要进入[它的官网](https://www.live2d.com/sdk/download/web/)，点击`Cubism SDK for Web`左边的按钮`下载最新版`来下载它，再引用正确的 JS 文件即可（一般位于`/CubismSdkForWeb-5-r.4/Core/live2dcubismcore.min.js`）
 
 ## 安装
 
@@ -42,10 +44,7 @@ import "@alphardex/live2d-viewer";
 ### 2. 在 HTML 中使用
 
 ```html
-<live2d-viewer
-  src="/path/to/your/model.model3.json"
-  motion="idle"
->
+<live2d-viewer src="/path/to/your/model.model3.json" motion="idle">
 </live2d-viewer>
 ```
 
@@ -74,43 +73,53 @@ console.log("Available expressions:", expressions);
 
 ## 属性
 
-| 属性 | 类型 | 默认值 | 描述 |
-|------|------|--------|------|
-| `src` | string | - | Live2D 模型文件路径（.model3.json） |
-| `motion` | string | "idle" | 初始动作名称 |
-| `scale` | number | 0.15 | 模型缩放比例 |
-| `auto-interact` | boolean | true | 是否启用自动交互 |
+| 属性            | 类型    | 默认值 | 描述                                |
+| --------------- | ------- | ------ | ----------------------------------- |
+| `src`           | string  | -      | Live2D 模型文件路径（.model3.json） |
+| `motion`        | string  | "idle" | 初始动作名称                        |
+| `scale`         | number  | 0.15   | 模型缩放比例                        |
+| `auto-interact` | boolean | true   | 是否启用自动交互                    |
 
 ## 方法
 
 ### setMotion(motionName)
+
 设置模型动作。
 
 **参数：**
+
 - `motionName` (string): 动作名称
 
 ### setExpression(expressionName)
+
 设置模型表情。
 
 **参数：**
+
 - `expressionName` (string): 表情名称
 
 ### setScale(scale)
+
 设置模型缩放。
 
 **参数：**
+
 - `scale` (number): 缩放比例
 
 ### getMotions()
+
 获取可用动作列表。
 
 **返回：**
+
 - `Array<string>`: 动作名称数组
 
 ### getExpressions()
+
 获取可用表情列表。
 
 **返回：**
+
 - `Array<string>`: 表情名称数组
 
 ## 许可证
