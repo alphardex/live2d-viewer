@@ -152,7 +152,7 @@ class Live2DViewerMulti extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["src", "motion", "scale", "auto-interact", "x", "y", "breath-enabled"];
+    return ["src", "motion", "scale", "auto-interact", "x", "y", "breath-enabled", "expression"];
   }
 
   connectedCallback() {
@@ -226,6 +226,7 @@ class Live2DViewerMulti extends HTMLElement {
     const motion = this.getAttribute("motion") || "idle";
     const scale = parseFloat(this.getAttribute("scale")) || 0.15;
     const autoInteract = this.getAttribute("auto-interact") !== "false";
+    const expression = this.getAttribute("expression");
 
     try {
       console.log(`Loading model: ${src}`);
@@ -256,6 +257,11 @@ class Live2DViewerMulti extends HTMLElement {
               console.warn("Failed to play fallback motion:", fallbackError);
             }
           }
+        }
+
+        // 如果有表情，先设置表情
+        if (expression && this.model && this.model.internalModel) {
+          this.setExpression(expression);
         }
 
         // 设置初始缩放
@@ -373,9 +379,14 @@ class Live2DViewerMulti extends HTMLElement {
 
   updateModelState() {
     const motion = this.getAttribute("motion");
+    const expression = this.getAttribute("expression");
 
     if (motion && this.model && this.model.internalModel) {
       this.setMotion(motion);
+    }
+
+    if (expression && this.model && this.model.internalModel) {
+      this.setExpression(expression);
     }
 
     // 缩放改变时更新
