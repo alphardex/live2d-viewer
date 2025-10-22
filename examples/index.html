@@ -222,8 +222,66 @@
   <div class="container">
     <h1>🎭 Live2D Viewer Demo</h1>
 
-    <live2d-viewer-multi id="viewer1" src="/kanade-live2d/17kanade_cloth001_3.0_f_t02.model3.json"
-          motion="w-kanade-glad01" auto-interact="false" breath-enabled="false"></live2d-viewer-multi>
+    <!-- <live2d-viewer-multi id="viewer1" src="/kanade-live2d/17kanade_cloth001_3.0_f_t02.model3.json"
+          motion="w-kanade-glad01" auto-interact="false" breath-enabled="false"></live2d-viewer-multi> -->
+
+    <div class="demo-grid">
+      <!-- 基础演示 -->
+      <div class="demo-card">
+        <h3>📱 基础演示</h3>
+        <live2d-viewer id="viewer1" src="/kanade-live2d/17kanade_cloth001_3.0_f_t02.model3.json"
+          motion="w-kanade-glad01" auto-interact="false" y="2.5"></live2d-viewer>
+        <div class="controls">
+          <button onclick="changeScale('viewer1', 0.1)">缩小</button>
+          <button onclick="changeScale('viewer1', 0.15)">正常</button>
+          <button onclick="changeScale('viewer1', 0.2)">放大</button>
+        </div>
+      </div>
+
+      <!-- 动作控制 -->
+      <div class="demo-card">
+        <h3>🎬 动作控制</h3>
+        <live2d-viewer id="viewer2"
+          src="https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json"></live2d-viewer>
+        <div class="controls">
+          <button onclick="listMotions('viewer2')">获取动作列表</button>
+          <button onclick="randomMotion('viewer2')">随机动作</button>
+          <div id="motion-list"></div>
+        </div>
+      </div>
+
+      <!-- 表情控制 -->
+      <div class="demo-card">
+        <h3>😊 表情控制</h3>
+        <live2d-viewer id="viewer3"
+          src="https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json"></live2d-viewer>
+        <div class="controls">
+          <button onclick="listExpressions('viewer3')">获取表情列表</button>
+          <button onclick="randomExpression('viewer3')">随机表情</button>
+          <div id="expression-list"></div>
+        </div>
+      </div>
+
+      <!-- 动态加载 -->
+      <!-- <div class="demo-card">
+          <h3>🔄 动态加载</h3>
+          <live2d-viewer
+            id="viewer4"
+            src="https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json"
+          ></live2d-viewer>
+          <div class="controls">
+            <input
+              type="url"
+              id="model-url"
+              placeholder="输入Live2D模型URL (model.json或model3.json)"
+              value="https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json"
+            />
+            <button onclick="loadModelFromUrl()">加载模型</button>
+            <button onclick="resetToDefault()">重置默认</button>
+            <div id="upload-status"></div>
+          </div>
+        </div> -->
+    </div>
 
     <div class="disclaimer">
       <p>本网站用到的live2D动画部分来源于sekai.best，所有版权归其合法所有者所有，包括但不限于 Sega、Colorful Palette 和
@@ -238,8 +296,8 @@
 
   <script type="module">
     // 导入live2d-viewer组件
-    import "../dist/live2d-viewer-multi.js";
-    // import "../dist/index.esm.js";
+    // import "../dist/live2d-viewer-multi.js";
+    import "../dist/index.esm.js";
     // import "@alphardex/live2d-viewer";
   </script>
   <script>
