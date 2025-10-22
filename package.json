@@ -1,6 +1,6 @@
 {
   "name": "@alphardex/live2d-viewer",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "type": "module",
   "description": "A custom HTML element for displaying Live2D animations using PIXI.js",
   "main": "dist/index.js",
