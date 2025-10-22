@@ -143,6 +143,7 @@ class Live2DViewerMulti extends HTMLElement {
     this._isDestroyed = false;
     this._isLoading = false;
     this._hasRendered = false;
+    this._isReady = false;
 
     this.baseWindowWidth = 1920;
     this.baseWindowHeight = 1080;
@@ -221,6 +222,7 @@ class Live2DViewerMulti extends HTMLElement {
     }
 
     this._isLoading = true;
+    this._isReady = false;
 
     const src = this.getAttribute("src");
     const motion = this.getAttribute("motion") || "idle";
@@ -274,10 +276,35 @@ class Live2DViewerMulti extends HTMLElement {
         this.updatePosition();
 
         console.log(`Model loaded successfully for element:`, this);
+        this._isReady = true;
+        try {
+          this.dispatchEvent(new CustomEvent("model-loaded", {
+            detail: {
+              src,
+              motions: this.getMotions(),
+              expressions: this.getExpressions(),
+              width: this.modelContainer?.width,
+              height: this.modelContainer?.height
+            },
+            bubbles: true,
+            composed: true
+          }));
+        } catch (e) {
+          console.warn("Failed to dispatch model-loaded event:", e);
+        }
       }
     } catch (error) {
       console.error("Failed to load Live2D model:", error);
       this.shadowRoot.innerHTML = `<div style="color: red;">Error loading Live2D model: ${error.message}</div>`;
+      try {
+        this.dispatchEvent(new CustomEvent("model-error", {
+          detail: { src, message: error?.message || String(error) },
+          bubbles: true,
+          composed: true
+        }));
+      } catch (e) {
+        console.warn("Failed to dispatch model-error event:", e);
+      }
     } finally {
       this._isLoading = false;
     }
@@ -420,6 +447,20 @@ class Live2DViewerMulti extends HTMLElement {
     return this._breathEnabled;
   }
 
+  // 模型是否已加载完成
+  isModelLoaded() {
+    return this._isReady === true;
+  }
+
+  // 返回一个在模型加载完成时 resolve 的 Promise
+  waitForLoad() {
+    if (this._isReady) return Promise.resolve();
+    return new Promise((resolve) => {
+      const onLoaded = () => resolve();
+      this.addEventListener("model-loaded", onLoaded, { once: true });
+    });
+  }
+
   cleanupModel() {
     Live2DGlobalManager.unregisterModel(this);
 
@@ -434,6 +475,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.model = null;
     this.modelContainer = null;
     this._breathEnabled = true;
+    this._isReady = false;
   }
 
   disconnectedCallback() {
