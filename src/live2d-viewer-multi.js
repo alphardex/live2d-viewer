@@ -146,13 +146,13 @@ class Live2DViewerMulti extends HTMLElement {
 
     this.baseWindowWidth = 1920;
     this.baseWindowHeight = 1080;
-
-    // 添加翻转状态
-    this._isFlipped = false;
+    
+    // 呼吸动画控制
+    this._breathEnabled = true;
   }
 
   static get observedAttributes() {
-    return ["src", "motion", "scale", "auto-interact", "x", "y", "flip"];
+    return ["src", "motion", "scale", "auto-interact", "x", "y", "breath-enabled"];
   }
 
   connectedCallback() {
@@ -169,8 +169,8 @@ class Live2DViewerMulti extends HTMLElement {
 
     if (name === "src") {
       this.reloadModel();
-    } else if (name === "flip") {
-      this.updateFlipState();
+    } else if (name === "breath-enabled") {
+      this.updateBreathState();
     } else if (this.model) {
       this.updateModelState();
     }
@@ -185,12 +185,15 @@ class Live2DViewerMulti extends HTMLElement {
     this.shadowRoot.innerHTML = "";
 
     const src = this.getAttribute("src");
+    const breathEnabled = this.getAttribute("breath-enabled") !== "false";
 
     if (!src) {
       this.shadowRoot.innerHTML =
         '<div style="color: red;">Error: src attribute is required</div>';
       return;
     }
+
+    this._breathEnabled = breathEnabled;
 
     const container = document.createElement("div");
     this.container = container;
@@ -223,7 +226,6 @@ class Live2DViewerMulti extends HTMLElement {
     const motion = this.getAttribute("motion") || "idle";
     const scale = parseFloat(this.getAttribute("scale")) || 0.15;
     const autoInteract = this.getAttribute("auto-interact") !== "false";
-    const flip = this.getAttribute("flip") === "true";
 
     try {
       console.log(`Loading model: ${src}`);
@@ -240,9 +242,8 @@ class Live2DViewerMulti extends HTMLElement {
 
         Live2DGlobalManager.registerModel(this, this.model, this.modelContainer);
 
-        // 设置翻转状态
-        this._isFlipped = flip;
-        this.applyFlip();
+        // 设置呼吸动画
+        this.setupBreathAnimation();
 
         if (motion && this.model.internalModel) {
           try {
@@ -276,26 +277,45 @@ class Live2DViewerMulti extends HTMLElement {
     }
   }
 
-  // 应用水平翻转
-  applyFlip() {
-    if (!this.modelContainer) return;
-
-    if (this._isFlipped) {
-      // 水平翻转：scale.x 设为负值
-      this.modelContainer.scale.x = -Math.abs(this.modelContainer.scale.x);
-    } else {
-      // 恢复正常：scale.x 设为正值
-      this.modelContainer.scale.x = Math.abs(this.modelContainer.scale.x);
+  // 设置呼吸动画
+  setupBreathAnimation() {
+    if (!this.model || !this.model.internalModel) return;
+    
+    try {
+      const internalModel = this.model.internalModel;
+      
+      if (this._breathEnabled && internalModel.breath && internalModel.breath.setParameters) {
+        // 启用呼吸动画
+        internalModel.breath.setParameters([
+          // 这些参数需要根据具体模型调整
+          // 格式：参数ID, 偏移量, 峰值, 周期, 重量
+          { id: internalModel.coreModel.getParameterId('ParamAngleX'), offset: 0.0, peak: 15.0, cycle: 6.5345, weight: 0.5 },
+          { id: internalModel.coreModel.getParameterId('ParamAngleY'), offset: 0.0, peak: 8.0, cycle: 3.5345, weight: 0.5 },
+          { id: internalModel.coreModel.getParameterId('ParamAngleZ'), offset: 0.0, peak: 10.0, cycle: 5.5345, weight: 0.5 },
+          { id: internalModel.coreModel.getParameterId('ParamBodyAngleX'), offset: 0.0, peak: 4.0, cycle: 15.5345, weight: 0.5 },
+          { id: internalModel.coreModel.getParameterId('ParamBreath'), offset: 0.0, peak: 0.5, cycle: 3.2345, weight: 0.5 },
+        ]);
+        console.log('Breath animation enabled with parameters');
+      } else if (!this._breathEnabled && internalModel.breath) {
+        // 禁用呼吸动画 - 清空参数
+        internalModel.breath.setParameters([]);
+        console.log('Breath animation disabled');
+      }
+    } catch (error) {
+      console.warn('Failed to setup breath animation:', error);
     }
   }
 
-  // 更新翻转状态
-  updateFlipState() {
-    const flip = this.getAttribute("flip") === "true";
-    if (this._isFlipped !== flip) {
-      this._isFlipped = flip;
-      this.applyFlip();
-      this.updatePosition(); // 翻转后可能需要重新定位
+  // 更新呼吸动画状态
+  updateBreathState() {
+    const breathEnabled = this.getAttribute("breath-enabled") !== "false";
+    
+    if (this._breathEnabled !== breathEnabled) {
+      this._breathEnabled = breathEnabled;
+      
+      if (this.model) {
+        this.setupBreathAnimation();
+      }
     }
   }
 
@@ -308,7 +328,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.updatePosition();
   }
 
-  // 更新缩放 - 考虑翻转状态
+  // 更新缩放 - 基于窗口尺寸的相对缩放
   updateScale() {
     if (!this.modelContainer || !this.model) return;
 
@@ -319,15 +339,11 @@ class Live2DViewerMulti extends HTMLElement {
     const scaleFactor = Math.min(widthRatio, heightRatio);
     const actualScale = baseScale * scaleFactor;
 
-    // 设置缩放，保持翻转状态
-    if (this._isFlipped) {
-      this.modelContainer.scale.set(-actualScale, actualScale);
-    } else {
-      this.modelContainer.scale.set(actualScale, actualScale);
-    }
+    // 设置缩放
+    this.modelContainer.scale.set(actualScale, actualScale);
   }
 
-  // 修正定位逻辑 - 考虑翻转状态
+  // 修正定位逻辑 - 考虑模型自身尺寸
   updatePosition() {
     if (!this.modelContainer || !this.model) return;
 
@@ -340,16 +356,9 @@ class Live2DViewerMulti extends HTMLElement {
     const targetX = window.innerWidth * x;
     const targetY = window.innerHeight * y;
 
-    // 如果翻转了，需要调整水平位置
-    let finalX = targetX - (modelWidth / 2);
-
-    // 因为翻转后模型的锚点还在左上角，所以位置需要调整
-    if (this._isFlipped) {
-      finalX = targetX + (modelWidth / 2);
-    }
-
+    // 计算位置：目标位置 - 模型尺寸的一半（让中心点对准目标位置）
     this.modelContainer.position.set(
-      finalX,
+      targetX - (modelWidth / 2),
       targetY - (modelHeight / 2)
     );
   }
@@ -374,7 +383,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.updatePosition();
   }
 
-  // 设置缩放（考虑翻转状态）
+  // 设置缩放
   setScale(scale) {
     if (this.modelContainer && this.model) {
       this.setAttribute('scale', scale.toString());
@@ -383,22 +392,21 @@ class Live2DViewerMulti extends HTMLElement {
     }
   }
 
-  // 新增：翻转模型（公共方法）
-  flip(flip = true) {
-    this._isFlipped = flip;
-    this.setAttribute('flip', flip.toString());
-    this.applyFlip();
-    this.updatePosition();
+  // 公共方法：控制呼吸动画
+  enableBreathAnimation(enable = true) {
+    this.setAttribute('breath-enabled', enable.toString());
   }
 
-  // 新增：切换翻转状态
-  toggleFlip() {
-    this.flip(!this._isFlipped);
+  disableBreathAnimation() {
+    this.enableBreathAnimation(false);
   }
 
-  // 新增：获取翻转状态
-  isFlipped() {
-    return this._isFlipped;
+  toggleBreathAnimation() {
+    this.enableBreathAnimation(!this._breathEnabled);
+  }
+
+  isBreathAnimationEnabled() {
+    return this._breathEnabled;
   }
 
   cleanupModel() {
@@ -414,7 +422,7 @@ class Live2DViewerMulti extends HTMLElement {
 
     this.model = null;
     this.modelContainer = null;
-    this._isFlipped = false;
+    this._breathEnabled = true;
   }
 
   disconnectedCallback() {
@@ -422,7 +430,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.cleanupModel();
   }
 
-  // 其他公共方法保持不变...
+  // 其他公共方法
   async setMotion(motionName) {
     if (this.model && this.model.internalModel) {
       try {
