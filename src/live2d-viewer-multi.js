@@ -10,17 +10,17 @@ class Live2DGlobalManager {
   static containers = new Map();
   static isInitialized = false;
   static initializationPromise = null;
-  
+
   // 初始化全局 Pixi 应用
   static async initialize() {
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
-    
+
     if (this.isInitialized) {
       return Promise.resolve();
     }
-    
+
     this.initializationPromise = new Promise((resolve, reject) => {
       try {
         this.app = new PIXI.Application({
@@ -32,7 +32,7 @@ class Live2DGlobalManager {
           powerPreference: "high-performance",
           resizeTo: window,
         });
-        
+
         this.app.view.style.cssText = `
           position: fixed;
           top: 0;
@@ -42,18 +42,18 @@ class Live2DGlobalManager {
           pointer-events: none;
           z-index: -1;
         `;
-        
+
         if (!document.body.contains(this.app.view)) {
           document.body.appendChild(this.app.view);
         }
-        
+
         this.stage = this.app.stage;
         this.isInitialized = true;
         this.initializationPromise = null;
-        
+
         // 监听窗口大小变化
         this.setupResizeHandler();
-        
+
         console.log('Global Pixi Application initialized');
         resolve();
       } catch (error) {
@@ -61,10 +61,10 @@ class Live2DGlobalManager {
         reject(error);
       }
     });
-    
+
     return this.initializationPromise;
   }
-  
+
   // 设置窗口大小变化监听
   static setupResizeHandler() {
     const handleResize = () => {
@@ -75,12 +75,12 @@ class Live2DGlobalManager {
         }
       });
     };
-    
+
     // 使用防抖避免频繁触发
     const debouncedResize = this.debounce(handleResize, 100);
     window.addEventListener('resize', debouncedResize);
   }
-  
+
   static debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -92,41 +92,41 @@ class Live2DGlobalManager {
       timeout = setTimeout(later, wait);
     };
   }
-  
+
   // 注册模型
   static registerModel(element, model, container) {
     if (this.models.has(element)) {
       console.warn('Model already registered for element:', element);
       return;
     }
-    
+
     this.models.set(element, model);
     this.containers.set(element, container);
-    
+
     if (!container.parent) {
       this.stage.addChild(container);
     }
-    
+
     console.log(`Model registered for element:`, element);
   }
-  
+
   // 注销模型
   static unregisterModel(element) {
     const container = this.containers.get(element);
     const model = this.models.get(element);
-    
+
     if (container && this.stage && container.parent === this.stage) {
       this.stage.removeChild(container);
     }
-    
+
     if (model && !model.destroyed) {
       model.destroy({ children: true, texture: true, baseTexture: true });
     }
-    
+
     this.models.delete(element);
     this.containers.delete(element);
   }
-  
+
   static hasModel(element) {
     return this.models.has(element);
   }
@@ -143,14 +143,16 @@ class Live2DViewerMulti extends HTMLElement {
     this._isDestroyed = false;
     this._isLoading = false;
     this._hasRendered = false;
-    
-    // 基准窗口尺寸，用于计算相对缩放
-    this.baseWindowWidth = 1920; // 假设设计基准是 1920px 宽度
-    this.baseWindowHeight = 1080; // 假设设计基准是 1080px 高度
+
+    this.baseWindowWidth = 1920;
+    this.baseWindowHeight = 1080;
+
+    // 添加翻转状态
+    this._isFlipped = false;
   }
 
   static get observedAttributes() {
-    return ["src", "motion", "scale", "auto-interact", "x", "y"];
+    return ["src", "motion", "scale", "auto-interact", "x", "y", "flip"];
   }
 
   connectedCallback() {
@@ -164,9 +166,11 @@ class Live2DViewerMulti extends HTMLElement {
     if (oldValue === newValue || !this.isConnected) {
       return;
     }
-    
+
     if (name === "src") {
       this.reloadModel();
+    } else if (name === "flip") {
+      this.updateFlipState();
     } else if (this.model) {
       this.updateModelState();
     }
@@ -176,7 +180,7 @@ class Live2DViewerMulti extends HTMLElement {
     if (this._isDestroyed || this._hasRendered) {
       return;
     }
-    
+
     this._hasRendered = true;
     this.shadowRoot.innerHTML = "";
 
@@ -214,11 +218,12 @@ class Live2DViewerMulti extends HTMLElement {
     }
 
     this._isLoading = true;
-    
+
     const src = this.getAttribute("src");
     const motion = this.getAttribute("motion") || "idle";
     const scale = parseFloat(this.getAttribute("scale")) || 0.15;
     const autoInteract = this.getAttribute("auto-interact") !== "false";
+    const flip = this.getAttribute("flip") === "true";
 
     try {
       console.log(`Loading model: ${src}`);
@@ -235,6 +240,10 @@ class Live2DViewerMulti extends HTMLElement {
 
         Live2DGlobalManager.registerModel(this, this.model, this.modelContainer);
 
+        // 设置翻转状态
+        this._isFlipped = flip;
+        this.applyFlip();
+
         if (motion && this.model.internalModel) {
           try {
             await this.model.motion(motion);
@@ -250,13 +259,13 @@ class Live2DViewerMulti extends HTMLElement {
 
         // 设置初始缩放
         this.setScale(scale);
-        
+
         // 等待一帧确保模型尺寸已计算
         await new Promise(resolve => requestAnimationFrame(resolve));
-        
+
         // 更新位置
         this.updatePosition();
-        
+
         console.log(`Model loaded successfully for element:`, this);
       }
     } catch (error) {
@@ -267,60 +276,80 @@ class Live2DViewerMulti extends HTMLElement {
     }
   }
 
+  // 应用水平翻转
+  applyFlip() {
+    if (!this.modelContainer) return;
+
+    if (this._isFlipped) {
+      // 水平翻转：scale.x 设为负值
+      this.modelContainer.scale.x = -Math.abs(this.modelContainer.scale.x);
+    } else {
+      // 恢复正常：scale.x 设为正值
+      this.modelContainer.scale.x = Math.abs(this.modelContainer.scale.x);
+    }
+  }
+
+  // 更新翻转状态
+  updateFlipState() {
+    const flip = this.getAttribute("flip") === "true";
+    if (this._isFlipped !== flip) {
+      this._isFlipped = flip;
+      this.applyFlip();
+      this.updatePosition(); // 翻转后可能需要重新定位
+    }
+  }
+
   // 处理窗口大小变化
   handleWindowResize() {
     if (!this.modelContainer || !this.model) return;
-    
+
     // 重新计算缩放和位置
     this.updateScale();
     this.updatePosition();
   }
 
-  // 更新缩放 - 基于窗口尺寸的相对缩放
+  // 更新缩放 - 考虑翻转状态
   updateScale() {
     if (!this.modelContainer || !this.model) return;
 
     const baseScale = parseFloat(this.getAttribute("scale")) || 0.15;
-    
-    // 计算基于窗口宽高的缩放因子
+
     const widthRatio = window.innerWidth / this.baseWindowWidth;
     const heightRatio = window.innerHeight / this.baseWindowHeight;
-    
-    // 使用较小的缩放因子确保模型完全可见
     const scaleFactor = Math.min(widthRatio, heightRatio);
-    
-    // 应用相对缩放
     const actualScale = baseScale * scaleFactor;
-    
-    this.modelContainer.scale.set(actualScale, actualScale);
-    
-    console.log('Scale updated:', {
-      baseScale,
-      widthRatio,
-      heightRatio,
-      scaleFactor,
-      actualScale,
-      windowSize: { width: window.innerWidth, height: window.innerHeight }
-    });
+
+    // 设置缩放，保持翻转状态
+    if (this._isFlipped) {
+      this.modelContainer.scale.set(-actualScale, actualScale);
+    } else {
+      this.modelContainer.scale.set(actualScale, actualScale);
+    }
   }
 
-  // 修正定位逻辑
+  // 修正定位逻辑 - 考虑翻转状态
   updatePosition() {
     if (!this.modelContainer || !this.model) return;
 
     const x = parseFloat(this.getAttribute("x")) || 0.5;
     const y = parseFloat(this.getAttribute("y")) || 0.5;
 
-    // 获取模型的实际尺寸（考虑缩放）
     const modelWidth = this.modelContainer.width;
     const modelHeight = this.modelContainer.height;
 
-    // 计算位置：目标位置 - 模型尺寸的一半（让中心点对准目标位置）
     const targetX = window.innerWidth * x;
     const targetY = window.innerHeight * y;
 
+    // 如果翻转了，需要调整水平位置
+    let finalX = targetX - (modelWidth / 2);
+
+    // 因为翻转后模型的锚点还在左上角，所以位置需要调整
+    if (this._isFlipped) {
+      finalX = targetX + (modelWidth / 2);
+    }
+
     this.modelContainer.position.set(
-      targetX - (modelWidth / 2),
+      finalX,
       targetY - (modelHeight / 2)
     );
   }
@@ -335,30 +364,46 @@ class Live2DViewerMulti extends HTMLElement {
 
   updateModelState() {
     const motion = this.getAttribute("motion");
-    
+
     if (motion && this.model && this.model.internalModel) {
       this.setMotion(motion);
     }
-    
+
     // 缩放改变时更新
     this.updateScale();
     this.updatePosition();
   }
 
-  // 设置缩放（公共方法）
+  // 设置缩放（考虑翻转状态）
   setScale(scale) {
     if (this.modelContainer && this.model) {
-      // 设置基础缩放值
       this.setAttribute('scale', scale.toString());
-      // 更新实际缩放
       this.updateScale();
       this.updatePosition();
     }
   }
 
+  // 新增：翻转模型（公共方法）
+  flip(flip = true) {
+    this._isFlipped = flip;
+    this.setAttribute('flip', flip.toString());
+    this.applyFlip();
+    this.updatePosition();
+  }
+
+  // 新增：切换翻转状态
+  toggleFlip() {
+    this.flip(!this._isFlipped);
+  }
+
+  // 新增：获取翻转状态
+  isFlipped() {
+    return this._isFlipped;
+  }
+
   cleanupModel() {
     Live2DGlobalManager.unregisterModel(this);
-    
+
     if (this.model && !this.model.destroyed) {
       try {
         this.model.destroy({ children: true, texture: true, baseTexture: true });
@@ -366,9 +411,10 @@ class Live2DViewerMulti extends HTMLElement {
         console.warn('Error destroying model:', e);
       }
     }
-    
+
     this.model = null;
     this.modelContainer = null;
+    this._isFlipped = false;
   }
 
   disconnectedCallback() {
