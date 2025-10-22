@@ -484,13 +484,40 @@ class Live2DViewerMulti extends HTMLElement {
   }
 
   // 其他公共方法
-  async setMotion(motionName) {
+  async setMotion(motionName, options = {}) {
     if (this.model && this.model.internalModel) {
+      const { force = true } = options;
       try {
+        if (force) {
+          const mm = this.model.internalModel.motionManager;
+          try {
+            if (mm && typeof mm.stopAllMotions === 'function') {
+              mm.stopAllMotions();
+            } else if (mm && typeof mm.stopAllMotion === 'function') {
+              mm.stopAllMotion();
+            } else if (mm && typeof mm.stopAll === 'function') {
+              mm.stopAll();
+            }
+          } catch (e) {
+            console.warn('Failed to stop current motions:', e);
+          }
+        }
         await this.model.motion(motionName);
       } catch (error) {
         console.warn(`Failed to set motion '${motionName}':`, error);
       }
+    }
+  }
+
+  // 手动中断所有正在播放的动作
+  stopAllMotions() {
+    try {
+      const mm = this.model?.internalModel?.motionManager;
+      if (mm?.stopAllMotions) mm.stopAllMotions();
+      else if (mm?.stopAllMotion) mm.stopAllMotion();
+      else if (mm?.stopAll) mm.stopAll();
+    } catch (e) {
+      console.warn('Failed to stop motions:', e);
     }
   }
 
