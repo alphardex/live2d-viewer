@@ -40,7 +40,7 @@ class Live2DGlobalManager {
           width: 100%;
           height: 100%;
           pointer-events: none;
-          z-index: 0;
+          z-index: -1;
         `;
         
         if (!document.body.contains(this.app.view)) {
@@ -51,6 +51,9 @@ class Live2DGlobalManager {
         this.isInitialized = true;
         this.initializationPromise = null;
         
+        // 监听窗口大小变化
+        this.setupResizeHandler();
+        
         console.log('Global Pixi Application initialized');
         resolve();
       } catch (error) {
@@ -60,6 +63,34 @@ class Live2DGlobalManager {
     });
     
     return this.initializationPromise;
+  }
+  
+  // 设置窗口大小变化监听
+  static setupResizeHandler() {
+    const handleResize = () => {
+      // 更新所有模型的缩放和位置
+      this.models.forEach((model, element) => {
+        if (element.handleWindowResize) {
+          element.handleWindowResize();
+        }
+      });
+    };
+    
+    // 使用防抖避免频繁触发
+    const debouncedResize = this.debounce(handleResize, 100);
+    window.addEventListener('resize', debouncedResize);
+  }
+  
+  static debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
   
   // 注册模型
@@ -112,6 +143,10 @@ class Live2DViewerMulti extends HTMLElement {
     this._isDestroyed = false;
     this._isLoading = false;
     this._hasRendered = false;
+    
+    // 基准窗口尺寸，用于计算相对缩放
+    this.baseWindowWidth = 1920; // 假设设计基准是 1920px 宽度
+    this.baseWindowHeight = 1080; // 假设设计基准是 1080px 高度
   }
 
   static get observedAttributes() {
@@ -153,29 +188,15 @@ class Live2DViewerMulti extends HTMLElement {
       return;
     }
 
-    // 创建全屏占位容器
     const container = document.createElement("div");
     this.container = container;
     container.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0;
+      display: none;
     `;
     this.shadowRoot.appendChild(container);
 
-    // 元素本身也设置为全屏
     this.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0;
+      display: none;
     `;
 
     try {
@@ -227,7 +248,8 @@ class Live2DViewerMulti extends HTMLElement {
           }
         }
 
-        this.modelContainer.scale.set(scale, scale);
+        // 设置初始缩放
+        this.setScale(scale);
         
         // 等待一帧确保模型尺寸已计算
         await new Promise(resolve => requestAnimationFrame(resolve));
@@ -245,12 +267,49 @@ class Live2DViewerMulti extends HTMLElement {
     }
   }
 
-  // 修正定位逻辑 - 考虑模型自身尺寸
+  // 处理窗口大小变化
+  handleWindowResize() {
+    if (!this.modelContainer || !this.model) return;
+    
+    // 重新计算缩放和位置
+    this.updateScale();
+    this.updatePosition();
+  }
+
+  // 更新缩放 - 基于窗口尺寸的相对缩放
+  updateScale() {
+    if (!this.modelContainer || !this.model) return;
+
+    const baseScale = parseFloat(this.getAttribute("scale")) || 0.15;
+    
+    // 计算基于窗口宽高的缩放因子
+    const widthRatio = window.innerWidth / this.baseWindowWidth;
+    const heightRatio = window.innerHeight / this.baseWindowHeight;
+    
+    // 使用较小的缩放因子确保模型完全可见
+    const scaleFactor = Math.min(widthRatio, heightRatio);
+    
+    // 应用相对缩放
+    const actualScale = baseScale * scaleFactor;
+    
+    this.modelContainer.scale.set(actualScale, actualScale);
+    
+    console.log('Scale updated:', {
+      baseScale,
+      widthRatio,
+      heightRatio,
+      scaleFactor,
+      actualScale,
+      windowSize: { width: window.innerWidth, height: window.innerHeight }
+    });
+  }
+
+  // 修正定位逻辑
   updatePosition() {
     if (!this.modelContainer || !this.model) return;
 
-    const x = parseFloat(this.getAttribute("x")) || 0.5; // 默认居中
-    const y = parseFloat(this.getAttribute("y")) || 0.5; // 默认居中
+    const x = parseFloat(this.getAttribute("x")) || 0.5;
+    const y = parseFloat(this.getAttribute("y")) || 0.5;
 
     // 获取模型的实际尺寸（考虑缩放）
     const modelWidth = this.modelContainer.width;
@@ -264,14 +323,6 @@ class Live2DViewerMulti extends HTMLElement {
       targetX - (modelWidth / 2),
       targetY - (modelHeight / 2)
     );
-
-    // 调试信息
-    console.log('Model position debug:', {
-      target: { x: targetX, y: targetY },
-      modelSize: { width: modelWidth, height: modelHeight },
-      finalPosition: this.modelContainer.position,
-      scale: this.modelContainer.scale.x
-    });
   }
 
   async reloadModel() {
@@ -284,18 +335,25 @@ class Live2DViewerMulti extends HTMLElement {
 
   updateModelState() {
     const motion = this.getAttribute("motion");
-    const scale = parseFloat(this.getAttribute("scale")) || 0.15;
     
     if (motion && this.model && this.model.internalModel) {
       this.setMotion(motion);
     }
     
-    if (this.modelContainer) {
-      this.modelContainer.scale.set(scale, scale);
-    }
-    
-    // 缩放改变后需要重新计算位置
+    // 缩放改变时更新
+    this.updateScale();
     this.updatePosition();
+  }
+
+  // 设置缩放（公共方法）
+  setScale(scale) {
+    if (this.modelContainer && this.model) {
+      // 设置基础缩放值
+      this.setAttribute('scale', scale.toString());
+      // 更新实际缩放
+      this.updateScale();
+      this.updatePosition();
+    }
   }
 
   cleanupModel() {
@@ -318,7 +376,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.cleanupModel();
   }
 
-  // 公共方法
+  // 其他公共方法保持不变...
   async setMotion(motionName) {
     if (this.model && this.model.internalModel) {
       try {
@@ -341,14 +399,6 @@ class Live2DViewerMulti extends HTMLElement {
       }
     }
     return [];
-  }
-
-  setScale(scale) {
-    if (this.modelContainer && this.model) {
-      this.modelContainer.scale.set(scale, scale);
-      // 缩放改变后需要重新定位
-      this.updatePosition();
-    }
   }
 
   setExpression(expressionName) {
