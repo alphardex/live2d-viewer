@@ -1,6 +1,6 @@
 {
   "name": "@alphardex/live2d-viewer",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "type": "module",
   "description": "A custom HTML element for displaying Live2D animations using PIXI.js",
   "main": "dist/index.js",
@@ -29,13 +29,15 @@
   "author": "alphardex",
   "license": "MIT",
   "peerDependencies": {
-    "pixi.js": ">=7.0.0 <8.0.0",
-    "pixi-live2d-display": "0.5.0-beta"
+    "pixi-live2d-display": "0.5.0-beta",
+    "pixi.js": ">=7.0.0 <8.0.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.8",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
-    "rollup": "^4.46.2",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "rollup": "^4.46.2"
   },
   "repository": {
     "type": "git",

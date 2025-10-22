@@ -284,12 +284,18 @@
       <p>本网站用到的live2D动画部分来源于sekai.best，所有版权归其合法所有者所有，包括但不限于 Sega、Colorful Palette 和
         Crypton。本网站所有内容仅供学习和研究目的，以便让更多的人了解和熟悉live2D动画技术。</p>
     </div>
+
+    <!-- <live2d-viewer-multi id="viewer1" src="/kanade-live2d/17kanade_cloth001_3.0_f_t02.model3.json"
+      motion="w-kanade-glad01" auto-interact="false" x="0.25" y="0.75" scale="0.24"></live2d-viewer-multi>
+    <live2d-viewer-multi id="viewer2" src="/kanade-live2d/17kanade_cloth001_3.0_f_t02.model3.json"
+      motion="w-kanade-glad01" auto-interact="false" x="0.75" y="0.75" scale="0.24"></live2d-viewer-multi> -->
   </div>
 
   <script type="module">
     // 导入live2d-viewer组件
-    // import "../dist/index.esm.js";
-    import "@alphardex/live2d-viewer";
+    // import "../dist/live2d-viewer-multi.js";
+    import "../dist/index.esm.js";
+    // import "@alphardex/live2d-viewer";
   </script>
   <script>
     function changeScale(viewerId, scale) {
