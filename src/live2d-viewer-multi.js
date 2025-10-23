@@ -148,12 +148,16 @@ class Live2DViewerMulti extends HTMLElement {
     this.baseWindowWidth = 1920;
     this.baseWindowHeight = 1080;
     
-    // 呼吸动画控制
-    this._breathEnabled = true;
+    // 呼吸动画控制（默认关闭）
+    this._breathEnabled = false;
+
+    // 显隐控制（默认显示）
+    this._show = true;
+    this._fadeRAF = null;
   }
 
   static get observedAttributes() {
-    return ["src", "motion", "scale", "auto-interact", "x", "y", "breath-enabled", "expression"];
+    return ["src", "motion", "scale", "auto-interact", "x", "y", "breath-enabled", "expression", "show"];
   }
 
   connectedCallback() {
@@ -172,6 +176,8 @@ class Live2DViewerMulti extends HTMLElement {
       this.reloadModel();
     } else if (name === "breath-enabled") {
       this.updateBreathState();
+    } else if (name === "show") {
+      this.updateShowState();
     } else if (this.model) {
       this.updateModelState();
     }
@@ -247,6 +253,12 @@ class Live2DViewerMulti extends HTMLElement {
 
         // 设置呼吸动画
         this.setupBreathAnimation();
+
+        // 初始显隐状态
+        const showAttr = this.getAttribute("show");
+        const shouldShow = showAttr === null ? true : (showAttr !== "false");
+        this._show = shouldShow;
+        this.modelContainer.alpha = shouldShow ? 1 : 0;
 
 
         if (motion && this.model.internalModel) {
@@ -339,6 +351,47 @@ class Live2DViewerMulti extends HTMLElement {
       console.warn('Failed to setup breath animation:', error);
     }
   }
+
+  // 显隐与淡入淡出
+  updateShowState() {
+    const showAttr = this.getAttribute("show");
+    const shouldShow = showAttr === null ? true : (showAttr !== "false");
+    if (this._show === shouldShow) return;
+    this._show = shouldShow;
+    if (!this.modelContainer) return;
+    this.fadeToAlpha(shouldShow ? 1 : 0, 600);
+  }
+
+  fadeToAlpha(targetAlpha, duration = 600) {
+    if (!this.modelContainer) return;
+    if (this._fadeRAF) {
+      cancelAnimationFrame(this._fadeRAF);
+      this._fadeRAF = null;
+    }
+    const startAlpha = this.modelContainer.alpha ?? 1;
+    const startTime = performance.now();
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      // easeInOutQuad
+      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      this.modelContainer.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
+      if (t < 1) {
+        this._fadeRAF = requestAnimationFrame(animate);
+      } else {
+        this._fadeRAF = null;
+        this.modelContainer.alpha = targetAlpha;
+      }
+    };
+    this._fadeRAF = requestAnimationFrame(animate);
+  }
+
+  setShow(show = true) {
+    this.setAttribute('show', show.toString());
+  }
+  show() { this.setShow(true); }
+  hide() { this.setShow(false); }
+  toggleShow() { this.setShow(!this._show); }
 
   // 更新呼吸动画状态
   updateBreathState() {
