@@ -186,7 +186,7 @@ class Live2DViewerMulti extends HTMLElement {
     this.shadowRoot.innerHTML = "";
 
     const src = this.getAttribute("src");
-    const breathEnabled = this.getAttribute("breath-enabled") !== "false";
+    const breathEnabled = this.getAttribute("breath-enabled") === "true";
 
     if (!src) {
       this.shadowRoot.innerHTML =
@@ -226,8 +226,8 @@ class Live2DViewerMulti extends HTMLElement {
 
     const src = this.getAttribute("src");
     const motion = this.getAttribute("motion") || "idle";
-    const scale = parseFloat(this.getAttribute("scale")) || 0.15;
-    const autoInteract = this.getAttribute("auto-interact") !== "false";
+    const scale = parseFloat(this.getAttribute("scale")) || 0.5;
+    const autoInteract = this.getAttribute("auto-interact") === "true";
     const expression = this.getAttribute("expression");
 
     try {
@@ -247,6 +247,7 @@ class Live2DViewerMulti extends HTMLElement {
 
         // 设置呼吸动画
         this.setupBreathAnimation();
+
 
         if (motion && this.model.internalModel) {
           try {
@@ -341,7 +342,7 @@ class Live2DViewerMulti extends HTMLElement {
 
   // 更新呼吸动画状态
   updateBreathState() {
-    const breathEnabled = this.getAttribute("breath-enabled") !== "false";
+    const breathEnabled = this.getAttribute("breath-enabled") === "true";
     
     if (this._breathEnabled !== breathEnabled) {
       this._breathEnabled = breathEnabled;
@@ -474,7 +475,7 @@ class Live2DViewerMulti extends HTMLElement {
 
     this.model = null;
     this.modelContainer = null;
-    this._breathEnabled = true;
+    this._breathEnabled = false;
     this._isReady = false;
   }
 

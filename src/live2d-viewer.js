@@ -32,7 +32,7 @@ class Live2DViewer extends HTMLElement {
     const src = this.getAttribute("src");
     const motion = this.getAttribute("motion") || "idle";
     const scale = parseFloat(this.getAttribute("scale")) || 0.15;
-    const autoInteract = this.getAttribute("auto-interact") !== "false";
+    const autoInteract = this.getAttribute("auto-interact") === "true";
     const x = parseFloat(this.getAttribute("x")) || 0;
     const y = parseFloat(this.getAttribute("y")) || 0;
     this.x = x;
@@ -68,7 +68,7 @@ class Live2DViewer extends HTMLElement {
     src,
     motion = this.getAttribute("motion"),
     scale = this.getAttribute("scale") || 0.15,
-    autoInteract = this.getAttribute("auto-interact") !== "false",
+    autoInteract = this.getAttribute("auto-interact") === "true",
   }) {
     if (this.app) {
       this.app.destroy(true);
