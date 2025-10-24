@@ -153,7 +153,6 @@ class Live2DViewerMulti extends HTMLElement {
 
     // 显隐控制（默认显示）
     this._show = true;
-    this._fadeRAF = null;
   }
 
   static get observedAttributes() {
@@ -258,8 +257,7 @@ class Live2DViewerMulti extends HTMLElement {
         const showAttr = this.getAttribute("show");
         const shouldShow = showAttr === null ? true : (showAttr !== "false");
         this._show = shouldShow;
-        this.modelContainer.alpha = shouldShow ? 1 : 0;
-
+        this.modelContainer.visible = shouldShow;
 
         if (motion && this.model.internalModel) {
           try {
@@ -352,38 +350,15 @@ class Live2DViewerMulti extends HTMLElement {
     }
   }
 
-  // 显隐与淡入淡出
+  // 显隐控制
   updateShowState() {
     const showAttr = this.getAttribute("show");
     const shouldShow = showAttr === null ? true : (showAttr !== "false");
     if (this._show === shouldShow) return;
     this._show = shouldShow;
-    if (!this.modelContainer) return;
-    this.fadeToAlpha(shouldShow ? 1 : 0, 600);
-  }
-
-  fadeToAlpha(targetAlpha, duration = 600) {
-    if (!this.modelContainer) return;
-    if (this._fadeRAF) {
-      cancelAnimationFrame(this._fadeRAF);
-      this._fadeRAF = null;
+    if (this.modelContainer) {
+      this.modelContainer.visible = shouldShow;
     }
-    const startAlpha = this.modelContainer.alpha ?? 1;
-    const startTime = performance.now();
-    const animate = (now) => {
-      const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / duration);
-      // easeInOutQuad
-      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-      this.modelContainer.alpha = startAlpha + (targetAlpha - startAlpha) * eased;
-      if (t < 1) {
-        this._fadeRAF = requestAnimationFrame(animate);
-      } else {
-        this._fadeRAF = null;
-        this.modelContainer.alpha = targetAlpha;
-      }
-    };
-    this._fadeRAF = requestAnimationFrame(animate);
   }
 
   setShow(show = true) {
